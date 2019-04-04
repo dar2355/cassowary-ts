@@ -1,0 +1,23 @@
+{
+  "name": "cassowary-ts",
+  "version": "1.0.0",
+  "description": "the cassowary.js library but rewritten in typescript with modern conventions. Kiwijs is still faster.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dar2355/cassowary-ts.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dar2355/cassowary-ts/issues"
+  },
+  "homepage": "https://github.com/dar2355/cassowary-ts#readme",
+  "devDependencies": {
+    "typescript": "^3.4.1"
+  }
+}
