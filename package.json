@@ -2,9 +2,11 @@
   "name": "cassowary-ts",
   "version": "1.0.0",
   "description": "the cassowary.js library but rewritten in typescript with modern conventions. Kiwijs is still faster.",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
