@@ -63,7 +63,7 @@ export default class Tableau {
 
   addRow(aVar: AbstractVariable, expr: Expression) {
     this.rows.set(aVar, expr);
-    expr.terms.each(function(clv: any) {
+    expr.terms.each((clv: any) => {
       // fortunately there are ways to tell the compiler to hush :)
       // @ts-ignore-next-line
       this.insertColVar(clv, aVar);
@@ -75,7 +75,7 @@ export default class Tableau {
     let rows = this.columns.get(aVar);
     if (rows !== null) {
       this.columns.delete(aVar);
-      rows.each(function(clv: any) {
+      rows.each((clv: any) => {
         // @ts-ignore-next-line
         let expr = this.rows.get(clg);
         expr.terms.delete(aVar);
@@ -87,7 +87,7 @@ export default class Tableau {
   removeRow(aVar: AbstractVariable) {
     let expr: Expression = this.rows.get(aVar);
     // hopefully this isn't null
-    expr.terms.each(function(clv: any) {
+    expr.terms.each((clv: any) => {
       // @ts-ignore-next-line
       let varset = this.columns.get(clv);
       if (varset !== null) varset.delete(aVar);
