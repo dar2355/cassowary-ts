@@ -77,7 +77,7 @@ export default class Tableau {
       this.columns.delete(aVar);
       rows.each((clv: any) => {
         // @ts-ignore-next-line
-        let expr = this.rows.get(clg);
+        let expr = this.rows.get(clv);
         expr.terms.delete(aVar);
       })
     }
