@@ -5,9 +5,12 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+   "build": "tsc",
+   "prepare": "npm run build",
+   "version": "git add -A src",
+   "postversion": "git push && git push --tags"
   },
+  "files": ["lib/**/*"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dar2355/cassowary-ts.git"
