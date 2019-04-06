@@ -788,7 +788,7 @@ export default class SimplexSolver extends Tableau {
     constraintSet.add(aVar);
   };
 
-  private _noteUpdatedExternal(v: any, expr?: Expression) {
+  public _noteUpdatedExternal(v: any, expr?: Expression) {
     this._updatedExternals.add(v);
   }
 
