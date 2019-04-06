@@ -15,7 +15,7 @@ export default class Expression {
   public constant: number;
   public terms: HashTable;
   public externalVariables: HashSet;
-  public solver: SimplexSolver;
+  public solver?: SimplexSolver;
 
   public static empty(solver?: any) {
     let e = new Expression(undefined, 1, 0);
@@ -46,14 +46,12 @@ export default class Expression {
     this.constant = checkNumber(constant, 0);
     this.terms = new HashTable();
     this.externalVariables = new HashSet();
-    this.solver = new SimplexSolver();
-    // idk what these do but ok
-    // {
-    //   enumerable: false,
-    //   configurable: true,
-    //   writable: true,
-    //   value: null
-    // };
+    Object.defineProperty(this, "solver", {
+      enumerable: false,
+      configurable: true,
+      writable: true,
+      value: null
+    })
 
     if (cvar instanceof AbstractVariable) {
       value = checkNumber(value, 1);
