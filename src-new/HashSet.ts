@@ -84,10 +84,10 @@ export default class HashSet {
   private _store: any[] = [];
 
   public size = 0;
+  public hashCode: number;
 
   constructor() {
-    this._store = [];
-    this.size = 0;
+    this.hashCode = _inc();
   }
 
   add(item: any) {
@@ -100,9 +100,9 @@ export default class HashSet {
     return this._store;
   }
 
-  // first() {
-  //   return this._store[0];
-  // }
+  first() {
+    return this._store[0];
+  }
 
   has(item: any) {
     return this._store.indexOf(item) !== -1;

@@ -3,11 +3,11 @@ import HashTable from "./HashTable";
 import { ObjectiveVariable, Variable, SlackVariable, AbstractVariable, DummyVariable } from "./Variable";
 import Expression from "./Expression";
 import HashSet from "./HashSet";
-import { Constraint, EditConstraint, StayConstraint, Inequality } from "./Constraint";
+import { Constraint, EditConstraint, StayConstraint } from "./Constraint";
 import Strength from "./Strength";
 import Editinfo from "./EditInfo";
 import { InternalError, RequiredFailure } from "./Error";
-import { approx, GEQ } from "./c";
+import { approx } from "./c";
 
 
 const _newExpressionInternalReturn: any = {
@@ -67,22 +67,6 @@ export default class SimplexSolver extends Tableau {
     this._updatedExternals = new HashSet();
   }
 
-  addLowerBound(v: AbstractVariable, lower: number) {
-    let cn = new Inequality(v, GEQ, new Expression(lower));
-    return this.addConstraint(cn);
-  }
-
-  addUpperBound(v: AbstractVariable, upper: number) {
-    let cn = new Inequality(v, GEQ, new Expression(upper));
-    return this.addConstraint(cn);
-  }
-
-  addBounds(v: AbstractVariable, lower: number, upper: number) {
-    this.addLowerBound(v, lower);
-    this.addUpperBound(v, upper);
-    return this;
-  }
-
   add(...args: Constraint[]) {
     for (let x = 0; x < args.length; x++) {
       this.addConstraint(args[x]);
@@ -100,31 +84,24 @@ export default class SimplexSolver extends Tableau {
   addEditConstraint(cn: any) {
     let ir = _newExpressionInternalReturn;
     this.addEditConstraint(cn);
-    // this._addEditConstraint(cn, ir.eplus, ir.eminus, ir.prevEConstant);
+    this._addEditConstraint(cn, ir.eplus, ir.eminus, ir.prevEConstant);
     return this;
   }
 
-  addConstraint(cn: any) {
-    let eplus_eminus = new Array(2);
-    let _prevEConstant = new Array(1);
-    let expr = this.newExpression(cn, eplus_eminus, _prevEConstant);
-    let prevEConstant: number = _prevEConstant[0];
+  addConstraint(cn: Constraint) {
+    if (cn instanceof Constraint) {
+      cn.expression!.externalVariables.each((v: any) => {
+        this._noteUpdatedExternal(v);
+      });
+    }
+    let expr = this.newExpression(cn);
+    expr.solver = this;
 
     if (!this.tryAddingDirectly(expr)) {
       this.addWithArtificialVariable(expr);
     }
 
     this._needsSolving = true;
-    if (cn.isEdit) {
-      let i = this._editVarMap.size;
-      let cvEplus = eplus_eminus[0];
-      let cvEminus = eplus_eminus[1];
-      if (!(cvEplus instanceof SlackVariable)) console.warn("cvEplus not a slack variable =", cvEplus);
-      if (!(cvEminus instanceof SlackVariable)) console.warn("cvEminus not a slack variable =", cvEplus);
-      let ei = new Editinfo(cn, cvEplus, cvEminus, prevEConstant, i);
-      this._editVarMap.set(cn.variable, ei);
-      this._editVarList[i] = { v: cn.variable, info: ei };
-    }
     if (this.autoSolve) {
       this.optimize(this._objective);
       this._setExternalVariables();
@@ -153,7 +130,6 @@ export default class SimplexSolver extends Tableau {
     this.resolve();
     this._editVariableStack.pop();
     this.removeEditVarsTo(this._editVariableStack[this._editVariableStack.length - 1])
-    return this;
   }
 
   removeAllEditVars() { return this.removeEditVarsTo(0); }
@@ -397,10 +373,6 @@ export default class SimplexSolver extends Tableau {
     return bstr;
   };
 
-  getConstraintMap() {
-    return this._markerVars;
-  }
-
   addWithArtificialVariable(expr: Expression): void {
     let av = new SlackVariable({
       value: ++this._artificialCounter,
@@ -433,7 +405,7 @@ export default class SimplexSolver extends Tableau {
   };
 
   tryAddingDirectly(expr: Expression): boolean {
-    let subject = this.chooseSubject(expr);
+    var subject = this.chooseSubject(expr);
     if (subject === null) {
       return false;
     }
@@ -477,6 +449,7 @@ export default class SimplexSolver extends Tableau {
       return rv.retval;
     }
 
+    console.log(subject);
     if (subject != null) {
       return subject;
     }
@@ -529,9 +502,9 @@ export default class SimplexSolver extends Tableau {
       var expr = this.rows.get(basicVar);
       var c = expr.coefficientFor(minusErrorVar);
       expr.constant += (c * delta);
-      // if (basicVar.isExternal) {
-      //   this._noteUpdatedExternal(basicVar);
-      // }
+      if (basicVar.isExternal) {
+        this._noteUpdatedExternal(basicVar);
+      }
       if (basicVar.isRestricted && expr.constant < 0) {
         this.infeasibleRows.add(basicVar);
       }
@@ -541,7 +514,7 @@ export default class SimplexSolver extends Tableau {
     let zRow = this.rows.get(this._objective);
     // need to handle infeasible rows
     while (this.infeasibleRows.size) {
-      let exitVar = this.infeasibleRows.values()[0];
+      let exitVar = this.infeasibleRows.first();
       this.infeasibleRows.delete(exitVar);
       let entryVar: any = null;
       let expr = this.rows.get(exitVar);
@@ -573,11 +546,11 @@ export default class SimplexSolver extends Tableau {
     }
   };
 
-  newExpression(cn: Constraint, eplus_eminus: any[], prevEConstant: any): Expression {
-    // let ir = _newExpressionInternalReturn;
-    // ir.eplus = null;
-    // ir.eminus = null;
-    // ir.prevEConstant = null;
+  newExpression(cn: Constraint): Expression {
+    let ir = _newExpressionInternalReturn;
+    ir.eplus = null;
+    ir.eminus = null;
+    ir.prevEConstant = null;
 
     let cnExpr = cn.expression!;
     let expr = Expression.fromConstant(cnExpr.constant, this);
@@ -640,6 +613,9 @@ export default class SimplexSolver extends Tableau {
           value: this._dummyCounter,
           prefix: "d"
         });
+        ir.eplus = dummyVar;
+        ir.eminus = dummyVar;
+        ir.prevEConstant = cnExpr.constant;
         expr.setVariable(dummyVar, 1);
         this._markerVars.set(cn, dummyVar);
       } else {
@@ -675,9 +651,9 @@ export default class SimplexSolver extends Tableau {
           this._stayPlusErrorVars[this._stayPlusErrorVars.length] = eplus;
           this._stayMinusErrorVars[this._stayMinusErrorVars.length] = eminus;
         } else if (cn.isEdit) {
-          eplus_eminus[0] = eplus;
-          eplus_eminus[1] = eminus;
-          prevEConstant[0] = cnExpr.constant;
+          ir.eplus = eplus;
+          ir.eminus = eminus;
+          ir.prevEConstant = cnExpr.constant;
         }
       }
     }
@@ -813,22 +789,22 @@ export default class SimplexSolver extends Tableau {
     constraintSet.add(aVar);
   };
 
-  // public _noteUpdatedExternal(v: any, expr?: Expression) {
-  //   this._updatedExternals.add(v);
-  // }
+  public _noteUpdatedExternal(v: any, expr?: Expression) {
+    this._updatedExternals.add(v);
+  }
 
-  // private _addEditConstraint(cn: any, cvEplus: any, cvEminus: any, prevEConstant: any) {
-  //   let i = this._editVarMap.size;
-  //   let ei = new Editinfo(cn, cvEplus, cvEminus, prevEConstant, i);
-  //   this._editVarMap.set(cn.variable, ei);
-  //   this._editVarList[i] = { v: cn.variable, info: ei };
-  // }
+  private _addEditConstraint(cn: any, cvEplus: any, cvEminus: any, prevEConstant: any) {
+    let i = this._editVarMap.size;
+    let ei = new Editinfo(cn, cvEplus, cvEminus, prevEConstant, i);
+    this._editVarMap.set(cn.variable, ei);
+    this._editVarList[i] = { v: cn.variable, info: ei };
+  }
 
   private _resetStayConstants(): void {
-    let spev = this._stayPlusErrorVars;
-    let l = spev.length;
-    for (let i = 0; i < l; i++) {
-      let expr = this.rows.get(spev[i]);
+    var spev = this._stayPlusErrorVars;
+    var l = spev.length;
+    for (var i = 0; i < l; i++) {
+      var expr = this.rows.get(spev[i]);
       if (expr === null) {
         expr = this.rows.get(this._stayMinusErrorVars[i]);
       }
@@ -840,7 +816,6 @@ export default class SimplexSolver extends Tableau {
 
   private _setExternalVariables(): void {
     var changes: any[] = [];
-
     this._updatedExternals.each((v: any) => {
       // console.log("got updated", v.name, v.hashCode);
       var iv = v.value;

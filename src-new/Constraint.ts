@@ -4,7 +4,7 @@ import Expression from './Expression';
 import { Variable, AbstractVariable } from './Variable';
 import { InternalError } from './Error';
 
-// I'm going to have ptsd from rewriting this file (again) and I haven't
+// I'm going to have ptsd from rewriting this file and I haven't
 // even gotten into a real job yet
 
 export class AbstractConstraint {

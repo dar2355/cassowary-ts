@@ -4,7 +4,6 @@ import { AbstractVariable, Variable } from "./Variable";
 import HashTable from "./HashTable";
 import HashSet from "./HashSet";
 import SimplexSolver from './SimplexSolver';
-import Tableau from './Tableau';
 
 
 const checkNumber = (value: any, otherwise: any) => {
@@ -47,12 +46,12 @@ export default class Expression {
     this.constant = checkNumber(constant, 0);
     this.terms = new HashTable();
     this.externalVariables = new HashSet();
-    // Object.defineProperty(this, "solver", {
-    //   enumerable: false,
-    //   configurable: true,
-    //   writable: true,
-    //   value: null
-    // })
+    Object.defineProperty(this, "solver", {
+      enumerable: false,
+      configurable: true,
+      writable: true,
+      value: null
+    })
 
     if (cvar instanceof AbstractVariable) {
       value = checkNumber(value, 1);
@@ -77,9 +76,9 @@ export default class Expression {
   }
 
   clone() {
-    let e = new Expression();
+    let e = Expression.empty();
     e.initializeFromHash(this.constant, this.terms);
-    // e.solver = this.solver;
+    e.solver = this.solver;
     return e;
   }
 
@@ -110,17 +109,18 @@ export default class Expression {
     else if (expr instanceof Variable) return this.clone().addVariable(expr, -1);
   }
 
-  addExpression(expr: Expression | AbstractVariable, n?: number, subject?: AbstractVariable, solver?: Tableau) {
+  addExpression(expr: Expression | AbstractVariable, n?: number, subject?: AbstractVariable) {
     if (expr instanceof AbstractVariable) expr = Expression.fromVariable(expr);
     n = checkNumber(n, 1);
     this.constant += (n! * expr.constant);
     expr.terms.each((clv: any, coeff: any) => {
-      this.addVariable(clv, coeff * n!, subject, solver);
+      this.addVariable(clv, coeff * n!, subject);
+      this._updateIfExternal(clv);
     }, this);
     return this;
   }
 
-  addVariable(v: AbstractVariable, cd?: number, subject?: any, solver?: Tableau) {
+  addVariable(v: AbstractVariable, cd?: number, subject?: any) {
     if (cd === null) cd = 1;
 
     let coeff = this.terms.get(v);
@@ -128,13 +128,13 @@ export default class Expression {
       let newCoefficient = coeff + cd;
       if (newCoefficient === 0 || approx(newCoefficient, 0)) {
         // @ts-ignore-next-line
-        if (solver) solver.noteRemovedVariable(v, subject);
+        if (this.solver) this.solver.noteRemovedVariable(v, subject);
         this.terms.delete(v);
       } else this.setVariable(v, newCoefficient);
     } else {
       if (!approx(cd!, 0)) {
-        this.setVariable(v, cd);
-        if (solver) solver.noteAddedVariable(v, subject);
+        // @ts-ignore-next-line
+        if (this.solver) this.solver.noteAddedVariable(v, subject);
       }
     }
     return this;
@@ -142,7 +142,7 @@ export default class Expression {
 
   setVariable(v: AbstractVariable, c?: number) {
     this.terms.set(v, c);
-    // this._updateIfExternal(v);
+    this._updateIfExternal(v);
     return this;
   }
 
@@ -157,7 +157,8 @@ export default class Expression {
     return null;
   }
 
-  substituteOut(outvar: AbstractVariable, expr: Expression, subject: AbstractVariable, solver: Tableau) {
+  substituteOut(outvar: AbstractVariable, expr: Expression, subject: AbstractVariable) {
+    let solver = this.solver;
     if (!solver) throw InternalError;
 
     let setVariable = this.setVariable.bind(this);
@@ -236,9 +237,9 @@ export default class Expression {
   private _updateIfExternal(v: any) {
     if (v.isExternal) {
       this.externalVariables.add(v);
-      // if (this.solver) {
-      //    this.solver._noteUpdatedExternal(v);
-      // }
+      if (this.solver) {
+        this.solver._noteUpdatedExternal(v);
+      }
     }
   }
 }

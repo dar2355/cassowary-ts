@@ -71,19 +71,12 @@ import { _inc } from './c';
 // !SECTION
 
 const defaultContext: any = {};
-
-const keyCode = (key: any) => {
-  let kc = (!!key.hashCode) ? key.hashCode : key.toString();
-  return kc;
-}
-
 const copyOwn = (src: any, dest: any) => {
   Object.keys(src).forEach((x) => { dest[x] = src[x]; })
 }
 
 export default class HashTable {
   private _store: any = {};
-  private _keyStrMap: any = {};
   private _deleted = 0;
 
   public size = 0;
@@ -91,36 +84,33 @@ export default class HashTable {
   constructor() {
     this.size = 0;
     this._store = {};
-    this._keyStrMap = {};
     this._deleted = 0;
   }
 
   set(key: any, value: any) {
-    let hash = keyCode(key);
+    let hash = key.hashCode;
 
-    if (!this._store.hasOwnProperty(hash)) {
+    if (typeof this._store[hash] == "undefined") {
       // FIXME(slightlyoff): if size gooes above the V8 property limit,
       // compact or go to a tree.
       this.size++;
     }
-    this._store[hash] = value;
-    this._keyStrMap[hash] = key;
+    this._store[hash] = [ key, value ];
   }
 
   get(key: any) {
     if (!this.size) return null;
 
-    key = keyCode(key);
+    key = key.hashCode;
 
     let v = this._store[key];
-    if (typeof v !== "undefined") return this._store[key];
+    if (typeof v != "undefined") return v[1];
     return null;
   }
 
   clear() {
     this.size = 0;
     this._store = {};
-    this._keyStrMap = {};
   }
 
   private _compact() {
@@ -143,7 +133,7 @@ export default class HashTable {
   }
 
   delete(key: any) {
-    key = keyCode(key);
+    key = key.hashCode;
     if (!this._store.hasOwnProperty(key)) return;
 
     this._deleted++;
@@ -158,11 +148,11 @@ export default class HashTable {
     this._perhapsCompact();
 
     let store = this._store;
-    let keyMap = this._keyStrMap;
-
-    Object.keys(this._store).forEach((k: any) => {
-      callback.call(scope || null, keyMap[k], store[k]);
-    })
+    for (const x in this._store) {
+      if (this._store.hasOwnProperty(x)) {
+        callback.call(scope||null, store[x][0], store[x][1]);
+      }
+    }
   }
 
   escapingEach(callback: any, scope?: any) {
@@ -172,13 +162,12 @@ export default class HashTable {
 
     let that = this;
     let store = this._store;
-    let keyMap = this._keyStrMap;
     let context = defaultContext;
     let kl = Object.keys(store);
     for (let x = 0; x < kl.length; x++) {
       (function(v) { // unfamiliar syntax - I'm not touching this
         if (that._store.hasOwnProperty(v)) {
-          context = callback.call(scope||null, keyMap[v], store[v]);
+          context = callback.call(scope||null, store[v][0], store[v][1]);
         }
       })(kl[x]);
 
@@ -198,7 +187,6 @@ export default class HashTable {
     if (this.size) {
       n.size = this.size;
       copyOwn(this._store, n._store);
-      copyOwn(this._keyStrMap, n._keyStrMap);
     }
     return n;
   }
@@ -210,8 +198,7 @@ export default class HashTable {
     let codes = Object.keys(this._store);
     for (let i = 0; i < codes.length; i++) {
       let code = codes[i];
-      if (this._keyStrMap[code] !== other._keyStrMap[code] ||
-         this._store[code][0] !== other._store[code][0]) {
+      if (this._store[code][0] !== other._store[code][0]) {
         return false;
       }
     }
