@@ -450,7 +450,7 @@ export default class SimplexSolver extends Tableau {
         if (v.isRestricted) {
           if (!foundNewRestricted && !v.isDummy && c < 0) {
             let col = this.columns.get(v);
-            if (col = null ||
+            if (col == null ||
                 (col.size == 1 && this.columnsHasKey(this._objective))
             ) {
               subject = v;
@@ -821,16 +821,15 @@ export default class SimplexSolver extends Tableau {
   };
 
   private _setExternalVariables(): void {
-    var changes: any[] = [];
-
     this._externalParametricVars.each((v: any) => {
-      if (this.rows.get(v) != null) v.value = 0;
+      if (this.rows.get(v) == null) v.value = 0;
     }, this);
 
     this._externalRows.each((v: any) => {
       let expr = this.rows.get(v);
-      if (v.value != expr.constnt) {
+      if (v.value != expr.constant) {
         v.value = expr.constant;
+        console.log("SimplexSolver: _setExternalVariables: v.value = expr.constant -- ", v, expr);
       }
     }, this)
 

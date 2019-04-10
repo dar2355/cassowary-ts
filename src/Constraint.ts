@@ -129,7 +129,8 @@ export class Inequality extends Constraint {
         } else if (op === Equalities.GEQ) this.expression!.addExpression(cloneOrNewCle(cle2), -1);
         else throw InternalError
 
-        return this; // because for some reason it was there before
+        this.isInequality = true;
+        return this;
       }
       else if (a1IsNum && a3IsExp) {
         var cle1 = a3, op = a2, cle2 = a1, strength = a4, weight = a5;
@@ -142,6 +143,7 @@ export class Inequality extends Constraint {
         } else {
           throw InternalError;
         }
+        this.isInequality = true;
         return this;
       }
       else if (a1IsExp && a3IsExp) {
@@ -155,6 +157,7 @@ export class Inequality extends Constraint {
       }
       else if (a1IsExp) {
         super(a1 as Expression, a2 as Strength, a3 as number);
+        this.isInequality = true;
         return this;
       }
       else if (a2 === Equalities.GEQ) {
@@ -183,6 +186,7 @@ export class Equation extends Constraint {
     }
     else if ((a1 instanceof AbstractVariable) && (a2 instanceof Expression)) {
       let cv = a1, cle = a2, strength = a3, weight = a4;
+      super(cle.clone(), strength, weight);
       this.expression!.addVariable(cv, -1);
     }
     else if ((a1 instanceof AbstractVariable) && (typeof(a2) === "number")) {
