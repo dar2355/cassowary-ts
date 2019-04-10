@@ -6,7 +6,8 @@ import Expression from "./Expression";
 
 export default class Tableau {
   // because it's accessed in its child it must be public
-  public _externalRows: HashTable;
+  public _externalRows: HashSet;
+  public _externalParametricVars: HashSet;
 
   public infeasibleRows: HashSet;
   public columns: HashTable;
@@ -17,7 +18,8 @@ export default class Tableau {
     this.rows = new HashTable();
 
     this.infeasibleRows = new HashSet();
-    this._externalRows = new HashTable();
+    this._externalRows = new HashSet();
+    this._externalParametricVars = new HashSet();
   }
 
   noteRemovedVariable(v: AbstractVariable, subject: AbstractVariable) {
@@ -64,23 +66,25 @@ export default class Tableau {
   addRow(aVar: AbstractVariable, expr: Expression) {
     this.rows.set(aVar, expr);
     expr.terms.each((clv: any) => {
-      // fortunately there are ways to tell the compiler to hush :)
-      // @ts-ignore-next-line
       this.insertColVar(clv, aVar);
+      if (clv.isExternal) this._externalParametricVars.add(clv);
     }, this)
-    if (aVar.isExternal) this._externalRows.set(aVar, expr);
+    if (aVar.isExternal) this._externalRows.add(aVar);
   }
 
   removeColumn(aVar: AbstractVariable) {
     let rows = this.columns.get(aVar);
-    if (rows !== null) {
+    if (rows != null) {
       this.columns.delete(aVar);
       rows.each((clv: any) => {
         let expr = this.rows.get(clv);
         expr.terms.delete(aVar);
       })
     }
-    if (aVar.isExternal) this._externalRows.delete(aVar);
+    if (aVar.isExternal) {
+      this._externalRows.delete(aVar);
+      this._externalParametricVars.delete(aVar);
+    }
   }
 
   removeRow(aVar: AbstractVariable) {
@@ -89,7 +93,7 @@ export default class Tableau {
     expr.terms.each((clv: any) => {
       // @ts-ignore-next-line
       let varset = this.columns.get(clv);
-      if (varset !== null) varset.delete(aVar);
+      if (varset != null) varset.delete(aVar);
     }, this);
     this.infeasibleRows.delete(aVar);
     if (aVar.isExternal) this._externalRows.delete(aVar);
@@ -100,18 +104,16 @@ export default class Tableau {
   substituteOut(oldVar: AbstractVariable, expr: Expression) {
     let varset = this.columns.get(oldVar);
     // forgive me...
-    varset.each(function(v: any) {
-      // @ts-ignore-next-line
+    varset.each((v: any) => {
       let row = this.rows.get(v);
-      // @ts-ignore-next-line
       row.substituteOut(oldVar, expr, v, this);
-      // @ts-ignore-next-line
-      if (v.isExternal) this._updatedExternals.add(v);
-      // @ts-ignore-next-line
-      if (v.isRestricted && row.constant < 0) this._infeasibleRows.add(v);
-    }, this);
+      if (v.isRestricted && row.constant < 0) this.infeasibleRows.add(v);
+    });
 
-    if (oldVar.isExternal) this._externalRows.set(oldVar, expr);
+    if (oldVar.isExternal) {
+      this._externalRows.add(oldVar);
+      this._externalParametricVars.delete(oldVar);
+    }
 
     this.columns.delete(oldVar);
   }

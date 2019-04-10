@@ -35,7 +35,7 @@ export class EditConstraint extends AbstractConstraint {
   public variable: Variable;
   isEdit = true;
 
-  constructor(cv: Variable, strength: Strength, weight: number) {
+  constructor(cv: Variable, strength: Strength, weight?: number) {
     super(strength || Strength.strong, weight);
     this.variable = cv;
     this.expression = new Expression(cv, -1, cv.value as number);

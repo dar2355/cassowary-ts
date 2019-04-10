@@ -33,7 +33,7 @@ export default class SimplexSolver extends Tableau {
   private _optimizeCount: number;
 
   private _editVariableStack: number[];
-  private _updatedExternals: HashSet;
+  // private _updatedExternals: HashSet;
 
   private _callbacks: any;
 
@@ -62,9 +62,8 @@ export default class SimplexSolver extends Tableau {
 
     this._optimizeCount = 0;
 
-    this.rows.set(this._objective, Expression.empty(this));
+    this.rows.set(this._objective, new Expression());
     this._editVariableStack = [0];
-    this._updatedExternals = new HashSet();
   }
 
   addLowerBound(v: AbstractVariable, lower: number) {
@@ -91,10 +90,7 @@ export default class SimplexSolver extends Tableau {
   }
 
   addEditVar(v: Variable, strength?: Strength, weight?: number) {
-    // REVIEW big guess here as to what was wanted with weight as a default
-    let cn = new EditConstraint(v, strength || Strength.strong, weight || 1);
-    this.addEditConstraint(cn);
-    return this;
+    return this.addConstraint(new EditConstraint(v, strength || Strength.strong))
   }
 
   addEditConstraint(cn: any) {
@@ -145,7 +141,7 @@ export default class SimplexSolver extends Tableau {
   beginEdit() {
     this.infeasibleRows.clear();
     this._resetStayConstants();
-    this._editVariableStack[this._editVariableStack.length] = this._editVarMap.size;
+    this._editVariableStack.push(this._editVarMap.size);
     return this;
   }
 
@@ -186,21 +182,15 @@ export default class SimplexSolver extends Tableau {
     return this.addConstraint(cn);
   }
 
-  // calls a function that does not exist
-  // setConstant(cn, constant) {
-  //   this.setConstant(cn, constant);
-  //   this.resolve();
-  // }
-
   removeConstraint(cn: Constraint) {
     this._needsSolving = true;
     this._resetStayConstants();
     let zRow = this.rows.get(this._objective);
     let eVars = this._errorVars.get(cn);
-    if (eVars !== null) {
+    if (eVars != null) {
       eVars.each((cv: any) => {
         let expr = this.rows.get(cv);
-        if (expr === null) {
+        if (expr == null) {
           zRow.addVariable(
             cv,
             -cn.weight * cn.strength.symbolicWeight.value,
@@ -220,8 +210,8 @@ export default class SimplexSolver extends Tableau {
     }
     let marker = this._markerVars.get(cn);
     this._markerVars.delete(cn);
-    if (marker === null) throw InternalError;
-    if (this.rows.get(marker) === null) {
+    if (marker == null) throw InternalError;
+    if (this.rows.get(marker) == null) {
       let col = this.columns.get(marker);
       let exitVar: any = null;
       let minRatio = 0;
@@ -231,27 +221,27 @@ export default class SimplexSolver extends Tableau {
           let coeff = expr.coefficientFor(marker);
           if (coeff < 0) {
             let r = -expr.constant / coeff;
-            if (exitVar ===  null || r < minRatio || (approx(r, minRatio) && v.hashCode < exitVar.hashCode)) {
+            if (exitVar ==  null || r < minRatio || (approx(r, minRatio) && v.hashCode < exitVar.hashCode)) {
               minRatio = r;
               exitVar = v;
             }
           }
         }
       }, this);
-      if (exitVar === null) {
+      if (exitVar == null) {
         col.each((v: any) => {
           if (v.isRestricted) {
             let expr = this.rows.get(v);
             let coeff = expr.coefficientFor(marker);
             let r = expr.constant / coeff;
-            if (exitVar === null || r < minRatio) {
+            if (exitVar == null || r < minRatio) {
               minRatio = r;
               exitVar = v;
             }
           }
         }, this);
       }
-      if (exitVar === null) {
+      if (exitVar == null) {
         if (col.size === 0) {
           this.removeColumn(marker);
         } else {
@@ -263,17 +253,17 @@ export default class SimplexSolver extends Tableau {
           }, this);
         }
       }
-      if (exitVar !== null) this.pivot(marker, exitVar);
+      if (exitVar != null) this.pivot(marker, exitVar);
     }
-    // if (this.rows.get(marker) !== null) let expr = this.removeRow(marker); // unused
-    if (eVars !== null) {
+    if (this.rows.get(marker) != null) this.removeRow(marker);
+    if (eVars != null) {
       eVars.each((v: any) => {
         if (v !== marker) this.removeColumn(v);
       }, this);
     }
 
     if (cn.isStay) {
-      if (eVars !== null) {
+      if (eVars != null) {
         for (let i = 0; i < this._stayPlusErrorVars.length; i++) {
           eVars.delete(this._stayPlusErrorVars[i]);
           eVars.delete(this._stayMinusErrorVars[i]);
@@ -285,7 +275,7 @@ export default class SimplexSolver extends Tableau {
       this._editVarMap.delete((cn as EditConstraint).variable);
     }
 
-    if (eVars !== null) this._errorVars.delete(eVars);
+    if (eVars != null) this._errorVars.delete(eVars);
 
     if (this.autoSolve) {
       this.optimize(this._objective);
@@ -340,7 +330,7 @@ export default class SimplexSolver extends Tableau {
   };
 
   setEditedValue(v: Variable, n: number): SimplexSolver {
-    if (!(this.columnsHasKey(v) || (this.rows.get(v) !== null))) {
+    if (!(this.columnsHasKey(v) || (this.rows.get(v) != null))) {
       v.value = n;
       return this;
     }
@@ -427,14 +417,14 @@ export default class SimplexSolver extends Tableau {
       let entryVar = e.anyPivotableVariable();
       this.pivot(entryVar, av);
     }
-    // assert(this.rows.get(av) == null, "rowExpression(av) == null");
+    // assert(this.rows.get(av) = null, "rowExpression(av) = null");
     this.removeColumn(av);
     this.removeRow(az);
   };
 
   tryAddingDirectly(expr: Expression): boolean {
     let subject = this.chooseSubject(expr);
-    if (subject === null) {
+    if (subject == null) {
       return false;
     }
     expr.newSubject(subject);
@@ -460,7 +450,7 @@ export default class SimplexSolver extends Tableau {
         if (v.isRestricted) {
           if (!foundNewRestricted && !v.isDummy && c < 0) {
             let col = this.columns.get(v);
-            if (col == null ||
+            if (col = null ||
                 (col.size == 1 && this.columnsHasKey(this._objective))
             ) {
               subject = v;
@@ -505,29 +495,29 @@ export default class SimplexSolver extends Tableau {
     return subject;
   }
   deltaEditConstant(delta: number, plusErrorVar: AbstractVariable, minusErrorVar: AbstractVariable): void {
-    var exprPlus = this.rows.get(plusErrorVar);
-    if (exprPlus !== null) {
+    let exprPlus = this.rows.get(plusErrorVar);
+    if (exprPlus != null) {
       exprPlus.constant += delta;
       if (exprPlus.constant < 0) {
         this.infeasibleRows.add(plusErrorVar);
       }
       return;
     }
-    var exprMinus = this.rows.get(minusErrorVar);
-    if (exprMinus !== null) {
+    let exprMinus = this.rows.get(minusErrorVar);
+    if (exprMinus != null) {
       exprMinus.constant += -delta;
       if (exprMinus.constant < 0) {
         this.infeasibleRows.add(minusErrorVar);
       }
       return;
     }
-    var columnVars = this.columns.get(minusErrorVar);
+    let columnVars = this.columns.get(minusErrorVar);
     if (!columnVars) {
       console.log("columnVars is null -- tableau is:\n" + this);
     }
     columnVars.each((basicVar: any) => {
-      var expr = this.rows.get(basicVar);
-      var c = expr.coefficientFor(minusErrorVar);
+      let expr = this.rows.get(basicVar);
+      let c = expr.coefficientFor(minusErrorVar);
       expr.constant += (c * delta);
       // if (basicVar.isExternal) {
       //   this._noteUpdatedExternal(basicVar);
@@ -552,7 +542,7 @@ export default class SimplexSolver extends Tableau {
           let ratio = Number.MAX_VALUE;
           let r;
           let terms = expr.terms;
-          terms.each(function(v: any, cd: any) {
+          terms.each((v: any, cd: any) => {
             if (cd > 0 && v.isPivotable) {
               let zc = zRow.coefficientFor(v);
               r = zc / cd;
@@ -580,7 +570,7 @@ export default class SimplexSolver extends Tableau {
     // ir.prevEConstant = null;
 
     let cnExpr = cn.expression!;
-    let expr = Expression.fromConstant(cnExpr.constant, this);
+    let expr = new Expression(cnExpr.constant);
     let slackVar = new SlackVariable();
     let dummyVar = new DummyVariable();
     let eminus = new SlackVariable();
@@ -672,8 +662,8 @@ export default class SimplexSolver extends Tableau {
         this.insertErrorVar(cn, eplus);
 
         if (cn.isStay) {
-          this._stayPlusErrorVars[this._stayPlusErrorVars.length] = eplus;
-          this._stayMinusErrorVars[this._stayMinusErrorVars.length] = eminus;
+          this._stayPlusErrorVars.push(eplus);
+          this._stayMinusErrorVars.push(eminus);
         } else if (cn.isEdit) {
           eplus_eminus[0] = eplus;
           eplus_eminus[1] = eminus;
@@ -711,9 +701,7 @@ export default class SimplexSolver extends Tableau {
         }
       }, this);
 
-      if (objectiveCoeff >= -epsilon) {
-        return;
-      }
+      if (objectiveCoeff >= -epsilon) return;
 
       // choose which letiable to move out of the basis
       // Only consider pivotable basic letiables
@@ -768,11 +756,11 @@ export default class SimplexSolver extends Tableau {
     // otherwise it should be a pivotable variable -- enforced at call sites,
     // hopefully
     if (entryVar == null) {
-      console.warn("pivot: entryVar == null");
+      console.warn("pivot: entryVar = null");
     }
 
     if (exitVar == null) {
-      console.warn("pivot: exitVar == null");
+      console.warn("pivot: exitVar = null");
     }
     // console.log("SimplexSolver::pivot(", entryVar, exitVar, ")")
 
@@ -825,50 +813,29 @@ export default class SimplexSolver extends Tableau {
   // }
 
   private _resetStayConstants(): void {
-    let spev = this._stayPlusErrorVars;
-    let l = spev.length;
-    for (let i = 0; i < l; i++) {
-      let expr = this.rows.get(spev[i]);
-      if (expr === null) {
-        expr = this.rows.get(this._stayMinusErrorVars[i]);
-      }
-      if (expr != null) {
-        expr.constant = 0;
-      }
+    for (let i = 0; i < this._stayPlusErrorVars.length; i++) {
+      let expr = this.rows.get(this._stayPlusErrorVars[i]);
+      if (expr == null) expr = this.rows.get(this._stayMinusErrorVars[i]);
+      if (expr != null) expr.constant = 0;
     }
   };
 
   private _setExternalVariables(): void {
     var changes: any[] = [];
 
-    this._updatedExternals.each((v: any) => {
-      // console.log("got updated", v.name, v.hashCode);
-      var iv = v.value;
-      // var expr = this._externalRows.get(v);
-      var expr = this._externalRows.get(v);
-      if (!expr) {
-        v.value = 0;
-        return;
-      }
-      v.value = expr.constant;
-      if (iv !== v.value) {
-        // console.log(v.name, iv, "-->", v.value, iv === v.value);
-        changes.push({
-          type: "update",
-          name: v.name,
-          variable: v,
-          oldValue: iv
-        });
-      }
+    this._externalParametricVars.each((v: any) => {
+      if (this.rows.get(v) != null) v.value = 0;
     }, this);
 
-    this._updatedExternals.clear();
+    this._externalRows.each((v: any) => {
+      let expr = this.rows.get(v);
+      if (v.value != expr.constnt) {
+        v.value = expr.constant
+      }
+    }, this)
+
     this._needsSolving = false;
-    this._informCallbacks(changes);
-    // nope
-    // if (changes.length) {
-    //   // this.onSolved(changes);
-    // }
+    this.onSolved();
   };
   private _informCallbacks(changes: any): void {
     if(!this._callbacks) return;
