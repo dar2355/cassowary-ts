@@ -121,7 +121,7 @@ export default class Expression {
   }
 
   addVariable(v: AbstractVariable, cd?: number, subject?: any, solver?: Tableau) {
-    if (cd === null) cd = 1;
+    if (cd == null) cd = 1;
 
     let coeff = this.terms.get(v);
     if (coeff) {

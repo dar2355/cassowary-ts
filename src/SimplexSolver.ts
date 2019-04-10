@@ -830,7 +830,7 @@ export default class SimplexSolver extends Tableau {
     this._externalRows.each((v: any) => {
       let expr = this.rows.get(v);
       if (v.value != expr.constnt) {
-        v.value = expr.constant
+        v.value = expr.constant;
       }
     }, this)
 
