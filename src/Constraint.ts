@@ -180,7 +180,7 @@ export class Inequality extends Constraint {
 }
 
 export class Equation extends Constraint {
-  constructor(a1: any, a2: any, a3: any, a4: any) {
+  constructor(a1: any, a2: any, a3: any, a4?: any) {
     if (a1 instanceof Expression && !a2 || a2 instanceof Strength) {
       super(a1, a2, a3);
     }
