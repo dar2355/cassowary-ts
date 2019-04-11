@@ -32,10 +32,10 @@ export class AbstractConstraint {
 }
 
 export class EditConstraint extends AbstractConstraint {
-  public variable: Variable;
+  public variable: AbstractVariable;
   isEdit = true;
 
-  constructor(cv: Variable, strength: Strength, weight?: number) {
+  constructor(cv: AbstractVariable, strength: Strength, weight?: number) {
     super(strength || Strength.strong, weight);
     this.variable = cv;
     this.expression = new Expression(cv, -1, cv.value as number);
@@ -45,10 +45,10 @@ export class EditConstraint extends AbstractConstraint {
 }
 
 export class StayConstraint extends AbstractConstraint {
-  public variable: Variable;
+  public variable: AbstractVariable;
   isStay = true;
 
-  constructor(cv: Variable, strength: Strength, weight: number) {
+  constructor(cv: AbstractVariable, strength: Strength, weight: number) {
     super(strength || Strength.strong, weight);
     this.variable = cv;
     this.expression = new Expression(cv, -1, cv.value as number);
