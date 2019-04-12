@@ -1,8 +1,6 @@
 import { Variable } from "./Variable";
 import Expression from "./Expression";
 
-console.log("butts");
-
 const exprFromVarOrValue = (v: number | Variable) => {
   if (typeof v == "number" ) {
     return Expression.fromConstant(v);
@@ -55,6 +53,5 @@ export const approx = (a: number | string, b: number | string) => {
 
 var count = 0;
 export const _inc = () => {
-  console.log(count);
   return count++;
 }

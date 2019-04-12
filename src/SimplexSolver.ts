@@ -513,7 +513,7 @@ export default class SimplexSolver extends Tableau {
     }
     let columnVars = this.columns.get(minusErrorVar);
     if (!columnVars) {
-      console.log("columnVars is null -- tableau is:\n" + this);
+      // console.log("columnVars is null -- tableau is:\n" + this);
     }
     columnVars.each((basicVar: any) => {
       let expr = this.rows.get(basicVar);
@@ -829,7 +829,7 @@ export default class SimplexSolver extends Tableau {
       let expr = this.rows.get(v);
       if (v.value != expr.constant) {
         v.value = expr.constant;
-        console.log("SimplexSolver: _setExternalVariables: v.value = expr.constant -- ", v, expr);
+        // console.log("SimplexSolver: _setExternalVariables: v.value = expr.constant -- ", v, expr);
       }
     }, this)
 

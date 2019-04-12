@@ -37,7 +37,8 @@ export class AbstractVariable {
     };
   }
   fromJSON(input: any, Ctor: any) {
-    console.log(input, Ctor);
+    // console.log(input, Ctor);
+
     // TODO: unsure of how to implement this in typescript atm
     // also too lazy to figure out how
   }
